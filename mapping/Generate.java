@@ -159,7 +159,7 @@ public class Generate{
                 e.printStackTrace();
             }
         }else {
-            throw new IllegalAccessException("Table n'existe pas");
+            throw new IllegalAccessException("Table n'existe pas !");
         }
 
     }
