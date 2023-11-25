@@ -1,5 +1,7 @@
 package  mapping;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -40,7 +42,8 @@ public class Generate{
         }
         return response;
     }
-    public  void generateAttributes(ResultSet result, StringBuilder stringBuilder){
+    public  String generateAttributes(ResultSet result, StringBuilder stringBuilder){
+        StringBuilder attributes = new StringBuilder();
         try {
             while (result.next()){
                 String columnName = result.getString("column_name");
@@ -67,13 +70,16 @@ public class Generate{
                     javaType = "Object";
                 }
 
-                stringBuilder.append("\t"+javaType).append(" ").append(columnName).append(";\n");
+                attributes.append("\t"+javaType).append(" ").append(columnName).append(";\n");
             }
+
         }catch (Exception e){
             e.printStackTrace();
         }
+        return attributes.toString();
     }
-    public void generateGetttersSetters(ResultSet result,StringBuilder stringBuilder){
+    public String generateGetttersSetters(ResultSet result,StringBuilder stringBuilder){
+        StringBuilder gettersSetters = new StringBuilder();
         try {
             result.beforeFirst();
             while (result.next()){
@@ -101,27 +107,36 @@ public class Generate{
                     javaType = "Object";
                 }
 
-                stringBuilder.append("\tpublic ").append("get"+capitalize(columnName)).append("()").append("{return ").append(columnName).append(";}\n");
-                stringBuilder.append("\tpublic void ").append("set"+capitalize(columnName)).append("(").append(javaType).append(" ").append(columnName+")").append("{").append("this.").append(columnName).append("="+columnName+";}\n");
-                stringBuilder.append("\n");
+                gettersSetters.append("\tpublic ").append("get"+capitalize(columnName)).append("()").append("{return ").append(columnName).append(";}\n");
+                gettersSetters.append("\tpublic void ").append("set"+capitalize(columnName)).append("(").append(javaType).append(" ").append(columnName+")").append("{").append("this.").append(columnName).append("="+columnName+";}\n");
+                gettersSetters.append("\n");
             }
         }catch (Exception e){
             e.printStackTrace();
         }
+        return gettersSetters.toString();
     }
-    public void generateFile(String path,StringBuilder stringBuilder, String tableName){
+    public void generateFile(String path,StringBuilder stringBuilder, String tableName,String typeClass){
         try {
-            PrintWriter writer = new PrintWriter(path + capitalize(tableName) + ".java", "UTF-8");
-            writer.println(stringBuilder.toString());
-            writer.close();
-        }catch (Exception e){
+            if (typeClass.equals("java")) {
+                PrintWriter writer = new PrintWriter(path + capitalize(tableName) + ".java", "UTF-8");
+                writer.println(stringBuilder.toString());
+                writer.close();
+            } else if (typeClass.equals("C#")) {
+                PrintWriter writer = new PrintWriter(path + capitalize(tableName) + ".cs", "UTF-8");
+                writer.println(stringBuilder.toString());
+                writer.close();
+            }
+        }
+        catch (Exception e){
             e.printStackTrace();
         }
     }
 
 
-    public void  generateClass(String tableName, String typeClass, String path) throws IllegalAccessException {
+    public void  generateClass(String tableName, String typeClass, String path, String classType) throws IllegalAccessException {
         boolean checking = this.checkTable(tableName);
+        String template = null;
         if (checking == true) {
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append("public "+typeClass).append(" ").append(capitalize(tableName)).append("{\n");
@@ -133,25 +148,32 @@ public class Generate{
                 state.setString(1,tableName);
                 ResultSet result = state.executeQuery();
 
-                /// attributes
-               this.generateAttributes(result,stringBuilder);
+                /// field declarations
+               String fieldDeclarations = this.generateAttributes(result,stringBuilder);
 
                 stringBuilder.append("\n");
                 stringBuilder.append("// Getters & Setters\n");
 
-                // Getters & Setters
-                this.generateGetttersSetters(result,stringBuilder);
+                // getters and setters
+                String gettersSetters = this.generateGetttersSetters(result,stringBuilder);
 
+                // Read Template
+                if (classType.equals("java")) {
+                    template = new String(Files.readAllBytes(Paths.get("A:\\ETUDE\\Mr_NAINA\\Java\\S5\\GenerateClass\\templateJAVA.txt")));
+                } else if (classType.equals("C#")) {
+                    template = new String(Files.readAllBytes(Paths.get("A:\\ETUDE\\Mr_NAINA\\Java\\S5\\GenerateClass\\templateC#.txt")));
+                }
 
-                // Constructors
-                stringBuilder.append("\n");
-                stringBuilder.append("// Constructors\n");
-                stringBuilder.append("\tpublic ").append(capitalize(tableName)).append("(){}\n");
+                // Replace Placeholders
+                String classContent = template.replace("CLASS_NAME", capitalize(tableName))
+                        .replace("GETTERS_SETTERS", gettersSetters)
+                        .replace("FIELD_DECLARATIONS", fieldDeclarations);
+
 
                 stringBuilder.append("}\n"); /// fermeture class
 
-                // creation file
-                this.generateFile(path,stringBuilder,tableName);
+                // create file
+                this.generateFile(path,new StringBuilder(classContent),tableName,classType);
 
                 System.out.println(stringBuilder.toString());
                 con.close();
