@@ -1,5 +1,7 @@
 package  mapping;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.sql.Connection;
@@ -116,13 +118,13 @@ public class Generate{
         }
         return gettersSetters.toString();
     }
-    public void generateFile(String path,StringBuilder stringBuilder, String tableName,String typeClass){
+    public void generateFile(String path,StringBuilder stringBuilder, String tableName,String language){
         try {
-            if (typeClass.equals("java")) {
+            if (language.equals("java")) {
                 PrintWriter writer = new PrintWriter(path + capitalize(tableName) + ".java", "UTF-8");
                 writer.println(stringBuilder.toString());
                 writer.close();
-            } else if (typeClass.equals("C#")) {
+            } else if (language.equals("C#")) {
                 PrintWriter writer = new PrintWriter(path + capitalize(tableName) + ".cs", "UTF-8");
                 writer.println(stringBuilder.toString());
                 writer.close();
@@ -132,22 +134,34 @@ public class Generate{
             e.printStackTrace();
         }
     }
+    public ResultSet getInformationTable(String tableName){
+        ResultSet result = null;
+        try {
+            Connect c = new Connect();
+            Connection con = c.connectPostgres();
+            String sql = "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ?";
+            PreparedStatement state = con.prepareStatement(sql,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            state.setString(1,tableName);
+            result = state.executeQuery();
+            con.close();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
 
 
-    public void  generateClass(String tableName, String typeClass, String path, String classType) throws IllegalAccessException {
+    public void  generateClass(String tableName, String path, String language) throws IllegalAccessException {
         boolean checking = this.checkTable(tableName);
         String template = null;
+
         if (checking == true) {
             StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append("public "+typeClass).append(" ").append(capitalize(tableName)).append("{\n");
-            try {
-                Connect c = new Connect();
-                Connection con = c.connectPostgres();
-                String sql = "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = ?";
-                PreparedStatement state = con.prepareStatement(sql,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                state.setString(1,tableName);
-                ResultSet result = state.executeQuery();
+            stringBuilder.append("public class ").append(capitalize(tableName)).append("{\n");
 
+            try {
+                ResultSet result = this.getInformationTable(tableName);
                 /// field declarations
                String fieldDeclarations = this.generateAttributes(result,stringBuilder);
 
@@ -158,9 +172,9 @@ public class Generate{
                 String gettersSetters = this.generateGetttersSetters(result,stringBuilder);
 
                 // Read Template
-                if (classType.equals("java")) {
+                if (language.equals("java")) {
                     template = new String(Files.readAllBytes(Paths.get("A:\\ETUDE\\Mr_NAINA\\Java\\S5\\GenerateClass\\templateJAVA.txt")));
-                } else if (classType.equals("C#")) {
+                } else if (language.equals("C#")) {
                     template = new String(Files.readAllBytes(Paths.get("A:\\ETUDE\\Mr_NAINA\\Java\\S5\\GenerateClass\\templateC#.txt")));
                 }
 
@@ -172,11 +186,11 @@ public class Generate{
 
                 stringBuilder.append("}\n"); /// fermeture class
 
+
                 // create file
-                this.generateFile(path,new StringBuilder(classContent),tableName,classType);
+                this.generateFile(path,new StringBuilder(classContent),tableName,language);
 
                 System.out.println(stringBuilder.toString());
-                con.close();
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -1,0 +1,13 @@
+public class CLASS_NAME {
+    // Field Declarations
+    FIELD_DECLARATIONS
+
+    // Getters and Setters
+    GETTERS_SETTERS
+
+    // Default Constructor
+    public CLASS_NAME() {
+        // Initializations
+    }
+
+}
