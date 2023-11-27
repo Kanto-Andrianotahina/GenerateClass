@@ -44,15 +44,36 @@ public class Generate{
         }
         return response;
     }
-    public  String generateAttributes(ResultSet result, StringBuilder stringBuilder){
+    public String generateImport(String javaType) {
+        String importStatement = "";
+        switch (javaType) {
+            case "Integer":
+                importStatement = "import java.lang.Integer;\n";
+                break;
+            case "Double":
+                importStatement = "import java.lang.Double;\n";
+                break;
+            case "Date":
+                importStatement = "import java.sql.Date;\n";
+                break;
+            case "Timestamp":
+                importStatement = "import java.sql.Timestamp;\n";
+                break;
+            case "Object":
+                importStatement = "import java.lang.Object;\n";
+                break;
+        }
+        return importStatement;
+    }
+    public  String[] generateAttributes(ResultSet result, StringBuilder stringBuilder){
         StringBuilder attributes = new StringBuilder();
+        String javaType = null;
         try {
             while (result.next()){
                 String columnName = result.getString("column_name");
                 String dataType = result.getString("data_type");
 
                 // Convert PostgreSQL data type to Java data type
-                String javaType;
                 if (dataType.startsWith("character varying")) {
                     javaType = "String";
                 }
@@ -71,14 +92,13 @@ public class Generate{
                 else {
                     javaType = "Object";
                 }
-
                 attributes.append("\t"+javaType).append(" ").append(columnName).append(";\n");
             }
 
         }catch (Exception e){
             e.printStackTrace();
         }
-        return attributes.toString();
+        return new String[]{attributes.toString(),javaType};
     }
     public String generateGetttersSetters(ResultSet result,StringBuilder stringBuilder){
         StringBuilder gettersSetters = new StringBuilder();
@@ -163,7 +183,7 @@ public class Generate{
             try {
                 ResultSet result = this.getInformationTable(tableName);
                 /// field declarations
-               String fieldDeclarations = this.generateAttributes(result,stringBuilder);
+                String[] fieldDeclarations = this.generateAttributes(result,stringBuilder);
 
                 stringBuilder.append("\n");
                 stringBuilder.append("// Getters & Setters\n");
@@ -179,16 +199,19 @@ public class Generate{
                 }
 
                 // Replace Placeholders
-                String classContent = template.replace("CLASS_NAME", capitalize(tableName))
+                String importStatements = generateImport(fieldDeclarations[1]);
+                String fields = fieldDeclarations[0];
+                String classContent = template.replace("IMPORT", importStatements)
+                        .replace("CLASS_NAME", capitalize(tableName))
                         .replace("GETTERS_SETTERS", gettersSetters)
-                        .replace("FIELD_DECLARATIONS", fieldDeclarations);
-
-
+                        .replace("FIELD_DECLARATIONS", fields);
+                System.out.println(importStatements);
                 stringBuilder.append("}\n"); /// fermeture class
 
 
                 // create file
                 this.generateFile(path,new StringBuilder(classContent),tableName,language);
+//                System.out.println(classContent);
 
                 System.out.println(stringBuilder.toString());
             } catch (Exception e) {

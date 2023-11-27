@@ -1,3 +1,4 @@
+IMPORT
 public class CLASS_NAME {
     // Field Declarations
     FIELD_DECLARATIONS
