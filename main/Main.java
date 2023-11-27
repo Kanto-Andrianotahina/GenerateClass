@@ -12,7 +12,6 @@ public class Main {
         String language = "java";
         Generate g = new Generate();
         g.generateClass("methodarticle" ,path,language);
-
     }
 }
 
