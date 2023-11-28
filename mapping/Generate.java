@@ -8,16 +8,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Generate{
-    String tableName;
-
-    public String getTableName() {
-        return tableName;
-    }
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
 
 
     public boolean checkTable(String table){
@@ -43,6 +37,26 @@ public class Generate{
             e.printStackTrace();
         }
         return response;
+    }
+    public List<String> getAllTableName(){
+        List<String> tableName = new ArrayList<>();
+        try {
+            Connect c = new Connect();
+            Connection con = c.connectPostgres();
+            String sql = "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE' ";
+            PreparedStatement state = con.prepareStatement(sql);
+            ResultSet result = state.executeQuery();
+//            System.out.println("Query " +state);
+            while (result.next()){
+                String nameTable = result.getString("table_name");
+
+                tableName.add(nameTable);
+            }
+            con.close();
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return tableName;
     }
     public String generateImport(String javaType) {
         String importStatement = "";
@@ -222,7 +236,52 @@ public class Generate{
         }
 
     }
+    public  void generateAllClass(String path, String language){
+        String template = null;
+        try {
+            List<String> tableName = this.getAllTableName();
+            for (int i = 0; i < tableName.size(); i++) {
+                StringBuilder stringBuilder = new StringBuilder();
+                stringBuilder.append("public class ").append(capitalize(tableName.get(i))).append("{\n");
 
+                ResultSet result = this.getInformationTable(tableName.get(i));
+                /// field declarations
+                String[] fieldDeclarations = this.generateAttributes(result,stringBuilder);
+
+                stringBuilder.append("\n");
+                stringBuilder.append("// Getters & Setters\n");
+
+                // getters and setters
+                String gettersSetters = this.generateGetttersSetters(result,stringBuilder);
+
+                // Read Template
+                if (language.equals("java")) {
+                    template = new String(Files.readAllBytes(Paths.get("A:\\ETUDE\\Mr_NAINA\\Java\\S5\\GenerateClass\\templateJAVA.txt")));
+                } else if (language.equals("C#")) {
+                    template = new String(Files.readAllBytes(Paths.get("A:\\ETUDE\\Mr_NAINA\\Java\\S5\\GenerateClass\\templateC#.txt")));
+                }
+
+                // Replace Placeholders
+                String importStatements = generateImport(fieldDeclarations[1]);
+                String fields = fieldDeclarations[0];
+                String classContent = template.replace("IMPORT", importStatements)
+                        .replace("CLASS_NAME", capitalize(tableName.get(i)))
+                        .replace("GETTERS_SETTERS", gettersSetters)
+                        .replace("FIELD_DECLARATIONS", fields);
+                System.out.println(importStatements);
+                stringBuilder.append("}\n"); /// fermeture class
+
+
+                // create file
+                this.generateFile(path,new StringBuilder(classContent),tableName.get(i),language);
+//                System.out.println(classContent);
+
+                System.out.println(stringBuilder.toString());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 
     private String capitalize(String str) {
         return str.substring(0, 1).toUpperCase() + str.substring(1);
