@@ -9,7 +9,7 @@ public class Connect {
         try{
             if(con == null){
                 Class.forName("org.postgresql.Driver");
-                con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/fifolifo", "postgres", "root");
+                con = DriverManager.getConnection("jdbc:postgresql://localhost:5432/prevcoupure", "postgres", "root");
             }
         }catch(Exception e){
             System.out.println(e.getMessage());

@@ -127,7 +127,7 @@ public class Generate{
                 if (dataType.startsWith("character varying")) {
                     javaType = "String";
                 }
-                else if(dataType.equals("serial") || dataType.equals("int")){
+                else if(dataType.equals("serial") || dataType.equals("integer")){
                     javaType = "int";
                 }
                 else if (dataType.equals("double precision")){
@@ -136,14 +136,14 @@ public class Generate{
                 else if (dataType.equals("date")){
                     javaType = "Date";
                 }
-                else if (dataType.equals("timestamp")){
+                else if (dataType.equals("timestamp without time zone")){
                     javaType = "Timestamp";
                 }
                 else {
                     javaType = "Object";
                 }
 
-                gettersSetters.append("\tpublic ").append("get"+capitalize(columnName)).append("()").append("{return ").append(columnName).append(";}\n");
+                gettersSetters.append("\tpublic ").append(javaType +" ").append("get"+capitalize(columnName)).append("()").append("{return ").append(columnName).append(";}\n");
                 gettersSetters.append("\tpublic void ").append("set"+capitalize(columnName)).append("(").append(javaType).append(" ").append(columnName+")").append("{").append("this.").append(columnName).append("="+columnName+";}\n");
                 gettersSetters.append("\n");
             }
