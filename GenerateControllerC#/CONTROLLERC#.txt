@@ -1,0 +1,11 @@
+using Microsoft.AspNetCore.Mvc;
+PACKAGE
+[ApiController]
+[Route("[controller]")]
+public class CLASSNAME : ControllerBase
+{
+	[METHODE]
+	public IActionResult Index(){
+		return View("");
+	}
+} 
